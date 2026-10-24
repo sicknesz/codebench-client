@@ -19,7 +19,7 @@ import {
   // X,
   Zap,
 } from 'lucide-react'
-import { useState, useEffect, act } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+import { Manager } from "socket.io-client";
 
 type Difficuty = "Easy" | "Medium" | "Hard" | "Expert";
 
@@ -51,6 +52,7 @@ export type Exercise = {
   sourceCode?: string;
   testCode?: string;
   score?: number;
+  solution: string;
 }
 
 
@@ -103,12 +105,16 @@ const exercises: Exercise[] = [
         <strong>Think about it</strong>
         <p>Which array methods can you chain to keep this readable?</p>
       </div>
-    </div>)
+    </div>),
+    solution: `[
+     { name: 'Avery', score: 92, active: true, rank: 1 },
+     { name: 'Jordan', score: 87, active: true, rank: 2 },
+    ]`
   },
-  { id: '02', title: 'Async data pipeline', difficulty: 'Medium', time: '25 min', requirement: [] },
-  { id: '03', title: 'Memoization utility', difficulty: 'Medium', time: '20 min', requirement: [] },
-  { id: '04', title: 'Tree traversal', difficulty: 'Hard', time: '35 min', requirement: [] },
-  { id: '05', title: 'Rate limiter', difficulty: 'Hard', time: '40 min', requirement: [] },
+  { id: '02', title: 'Async data pipeline', difficulty: 'Medium', time: '25 min', requirement: [], solution: "" },
+  { id: '03', title: 'Memoization utility', difficulty: 'Medium', time: '20 min', requirement: [], solution: "" },
+  { id: '04', title: 'Tree traversal', difficulty: 'Hard', time: '35 min', requirement: [], solution: "" },
+  { id: '05', title: 'Rate limiter', difficulty: 'Hard', time: '40 min', requirement: [], solution: "" },
 ]
 
 type LanguagesOption = {
@@ -175,22 +181,58 @@ const defaultCandidate: Candidate = {
   id: 1,
 }
 
+// interface ServerToClientEvents {
+//   noArg: () => void;
+//   basicEmit: (a: number, b: string, c: Buffer) => void;
+//   withAck: (d: string, callback: (e: number) => void) => void;
+// }
+
+// interface ClientToServerEvents {
+//   hello: () => void;
+// }
+
+// interface InterServerEvents {
+//   ping: () => void;
+// }
+
+// interface SocketData {
+//   name: string;
+//   age: number;
+// }
 
 export default function Page() {
   const [candidate, setCandidate] = useState<Candidate>(defaultCandidate);
-  const [activeExercise, setActiveExercise] = useState<Exercise>(exercises[0])
-  const [code, setCode] = useState(starterCode)
-  const [testCode, setTestCode] = useState(starterTestCode)
-  const [isRunning, setIsRunning] = useState(false)
-  const [result, setResult] = useState<'idle' | 'passed' | 'failed'>('idle')
-  const [remainingSeconds, setRemainingSeconds] = useState(1 * 60 * 42 + 18)
+  const [activeExercise, setActiveExercise] = useState<Exercise>(exercises[0]);
+  const [code, setCode] = useState(starterCode);
+  const [testCode, setTestCode] = useState(starterTestCode);
+  const [isRunning, setIsRunning] = useState(false);
+  const [result, setResult] = useState<'idle' | 'passed' | 'failed'>('idle');
+  const [remainingSeconds, setRemainingSeconds] = useState(1 * 60 * 42 + 18);
   const [language, setLanguage] = useState<LanguagesOption>({ id: 0, text: "javascript", checked: true, badge: "js-badge", short: "JS" });
-  const [focusedPane, setFocusedPane] = useState<string | null>(null)
-  const [resultView, setResultView] = useState<'preview' | 'console'>('preview')
-  const [draggedPane, setDraggedPane] = useState<string | null>(null)
-  const [paneOrder, setPaneOrder] = useState(['directions', 'result', 'editor', 'tests'])
+  const [focusedPane, setFocusedPane] = useState<string | null>(null);
+  const [resultView, setResultView] = useState<'preview' | 'console'>('preview');
+  const [draggedPane, setDraggedPane] = useState<string | null>(null);
+  const [paneOrder, setPaneOrder] = useState(['directions', 'result', 'editor', 'tests']);
 
   const monaco = useMonaco();
+  const hostname = process.env.HOSTNAME || "http://localhost:3000";
+  const authToken = process.env.AUTH_TOKEN || "secret";
+
+  // TODO : make typesafe
+  const manager = new Manager/*<ServerToClientEvents, ClientToServerEvents>*/("ws://" + hostname, {
+    forceNew: true,
+    transports: ["websocket"],
+    reconnectionDelayMax: 10000,
+    query: {
+      "my-key": "my-value"
+    }
+  });
+
+  const socket = manager.socket("/sockets", {
+    auth: {
+      token: "secret"
+    }
+  });
 
   useEffect(() => {
     if (monaco) {
@@ -204,6 +246,73 @@ export default function Page() {
     }, 1000)
     return () => window.clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+
+    const onConnect = () => {
+      const transport = socket.io.engine.transport.name; // in most cases, "polling"
+      // window.log.debug(`[AppTemplate][socket.io::transport]: ${transport}`);
+
+      socket.io.engine.on("upgrade", () => {
+        const upgradedTransport = socket.io.engine.transport.name;
+        // window.log.debug(`[AppTemplate][socket.io::upgradedTransport]: ${upgradedTransport}`);
+      });
+
+    }
+
+    const onError = (err: unknown) => {
+      if (err instanceof Error) {
+        console.log(`connect_error due to ${err.message}`);
+      }
+    }
+
+    const onDisconnect = () => { }
+
+    const onExecuteRequest = (msg) => {
+
+    };
+
+    const onExecuteSuccess = (msg) => {
+
+    };
+
+    const onExecuteFailure = (msg) => {
+
+    };
+
+    const onExecuteTimeout = (msg) => {
+
+    };
+
+    const onExecuteError = (msg) => {
+
+    };
+
+
+    socket.on("connect", onConnect);
+    socket.on("connect_error", onError);
+    socket.on("disconnect", onDisconnect);
+
+    socket.on("sandbox:execute:request", onExecuteRequest);
+    socket.on("sandbox:execute:success", onExecuteSuccess);
+    socket.on("sandbox:execute:failure", onExecuteFailure);
+    socket.on("sandbox:execute:timeout", onExecuteTimeout);
+    socket.on("sandbox:execute:error", onExecuteError);
+
+
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off("connect_error", onError);
+
+      socket.off("sandbox:execute:request", onExecuteRequest);
+      socket.off("sandbox:execute:success", onExecuteSuccess);
+      socket.off("sandbox:execute:failure", onExecuteFailure);
+      socket.off("sandbox:execute:timeout", onExecuteTimeout);
+      socket.off("sandbox:execute:error", onExecuteError);
+    };
+
+  }, [socket])
 
   const runTests = () => {
     setIsRunning(true)
@@ -239,7 +348,8 @@ export default function Page() {
   const handleRunTest = (/* event: React.SyntheticEvent */) => {
 
     const finalCode = `${code}\n${testCode}`;
-    alert(finalCode);
+    // alert(finalCode);
+
   }
 
   const handleResetClicked = () => {

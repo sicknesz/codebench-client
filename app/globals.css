@@ -688,6 +688,18 @@ button {
     width: 11px;
 }
 
+.ts-badge {
+    display: grid;
+    place-items: center;
+    width: 17px;
+    height: 17px;
+    color: #17150e;
+    background: #413fcb;
+    border-radius: 3px;
+    font: 8px 'Space Mono';
+    font-weight: 700;
+}
+
 .js-badge {
     display: grid;
     place-items: center;
@@ -1839,14 +1851,3 @@ tbody tr.selected-row {
     }
 }
 
-.ts-badge {
-    display: grid;
-    place-items: center;
-    width: 17px;
-    height: 17px;
-    color: #17150e;
-    background: #413fcb;
-    border-radius: 3px;
-    font: 8px 'Space Mono';
-    font-weight: 700;
-}
