@@ -373,6 +373,133 @@ button {
 
 .top-actions {
     display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.countdown {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 32px;
+    padding: 0 10px;
+    border: 1px solid #2d4238;
+    border-radius: 6px;
+    background: #17251e;
+    color: var(--accent);
+    font: 11px 'Space Mono';
+}
+
+.countdown svg {
+    width: 13px;
+    height: 13px;
+}
+
+.countdown small {
+    color: #769383;
+    font: 9px Inter, sans-serif;
+}
+
+.countdown-warning {
+    border-color: #6e4e37;
+    background: #2a2119;
+    color: #edb878;
+}
+
+.countdown-warning small {
+    color: #b9956e;
+}
+
+.reset-button,
+.run-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border-radius: 6px;
+    padding: 8px 11px;
+    border: 1px solid #303840;
+    background: #181d22;
+    color: #aab3ba;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.reset-button svg {
+    width: 13px;
+}
+
+.run-button {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0c1711;
+    font-weight: 700;
+}
+
+.run-button svg {
+    width: 13px;
+    fill: currentColor;
+}
+
+.run-button:disabled {
+    opacity: .65;
+}
+
+.run-button kbd {
+    font: 9px 'Space Mono';
+    background: #78c19a;
+    padding: 3px 5px;
+    border-radius: 3px;
+    margin-left: 4px;
+}
+
+.topbar {
+    height: 67px;
+    padding: 0 25px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #69747e;
+    font-size: 12px;
+}
+
+.breadcrumb svg {
+    width: 13px;
+}
+
+.breadcrumb strong {
+    color: #d9dfe3;
+    font-weight: 600;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: 6px;
+    padding: 4px 8px;
+    border: 1px solid #2d4238;
+    border-radius: 20px;
+    color: #8dc6a4;
+    background: #17251e;
+    font-size: 10px;
+}
+
+.status-pill span {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+.top-actions {
+    display: flex;
     gap: 8px;
 }
 
@@ -727,7 +854,7 @@ button {
     color: #62707a;
     background: #171c21;
     padding: 0 12px;
-    font: 8px 'Space Mono';
+    font: 12px 'Space Mono';
 }
 
 .waiting-label {
@@ -1850,4 +1977,3 @@ tbody tr.selected-row {
         width: 15px;
     }
 }
-

@@ -32,6 +32,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 import { Manager } from "socket.io-client";
+import type { Socket } from "socket.io-client";
+
+type WebSocket = Socket<any, any>
 
 type Difficuty = "Easy" | "Medium" | "Hard" | "Expert";
 
@@ -44,7 +47,6 @@ export type Exercise = {
   description?: {
     p: string;
     h1: string;
-    h2: string;
   };
   task?: string;
   requirement: string[];
@@ -56,33 +58,47 @@ export type Exercise = {
 }
 
 
-const starterTestCode = `
-import { describe, it } from "bun:test";
-
-test('returns ranked active users', () => {
-  expect(transformUsers(users)).toStrictEqual([
-    { name: 'Avery', score: 92, active: true, rank: 1 },
-    { name: 'Jordan', score: 87, active: true, rank: 2 },
-  ])
-})
-`
-
 const starterCode = `
-function transformUsers(users) {
-  // Return only active users,
-  // sorted by their score (highest first).
-  // Add a "rank" property to each user.
-
-  return users
-}
-
 const users = [
   { name: "Avery", score: 92, active: true },
   { name: "Sam", score: 68, active: false },
   { name: "Jordan", score: 87, active: true },
-]
+];
+
+function transformUsers(users) {
+  const newUsers = [...users].filter(u => u.active).sort((a, b) => b.score - a.score).map((u, i) => ({ ...u, rank: i + 1 }));
+  return newUsers;
+};
 `
 
+const starterTestCode = `
+describe("testing filtering function", () => {
+  it('returns ranked active users', (t) => {
+    t.assert.deepEqual(transformUsers(users), [
+      { name: 'Avery', score: 92, active: true, rank: 1 },
+      { name: 'Jordan', score: 87, active: true, rank: 2 },
+    ])
+  })
+})
+
+describe("a failing test", () => {
+  it('should fail to return ranked active users', (t) => {
+    t.assert.deepEqual(transformUsers(users), [
+      { name: 'Avery', score: 99, active: true, rank: 2 },
+      { name: 'Jordan', score: 87, active: true, rank: 3 },
+    ])
+  })
+})
+`
+
+
+// todo : change solution from string to an object : 
+// { 
+//   returnValue: string,
+//   testMustPass: boolean,
+//   maximumDuration: number;
+// }   
+// 
 const exercises: Exercise[] = [
   {
     id: '01',
@@ -90,7 +106,6 @@ const exercises: Exercise[] = [
     description: {
       p: "Create a function that filters, sorts, and enriches a list of users.",
       h1: "Transform and rank active users",
-      h2: "Task"
     },
     difficulty: 'Easy',
     time: '15 min',
@@ -99,22 +114,56 @@ const exercises: Exercise[] = [
     testCode: starterTestCode,
     task: "Implement\n<code>transformUsers</code>\nso it returns only active users, ordered by their score from highest to lowest. Each returned user should include a\n<code>rank</code>\nproperty starting at 1.",
     requirement: ['Do not mutate the original <code>users</code> array.', 'Preserve all properties from each user object.', 'Return a new array when no users are active.'],
-    hint: (<div className="tip">
-      <Lightbulb />
-      <div>
-        <strong>Think about it</strong>
-        <p>Which array methods can you chain to keep this readable?</p>
+    hint: (
+      <div className="tip">
+        <Lightbulb />
+        <div>
+          <strong>Think about it</strong>
+          <p>Which array methods can you chain to keep this readable?</p>
+        </div>
       </div>
-    </div>),
+    ),
     solution: `[
      { name: 'Avery', score: 92, active: true, rank: 1 },
      { name: 'Jordan', score: 87, active: true, rank: 2 },
     ]`
   },
-  { id: '02', title: 'Async data pipeline', difficulty: 'Medium', time: '25 min', requirement: [], solution: "" },
-  { id: '03', title: 'Memoization utility', difficulty: 'Medium', time: '20 min', requirement: [], solution: "" },
-  { id: '04', title: 'Tree traversal', difficulty: 'Hard', time: '35 min', requirement: [], solution: "" },
-  { id: '05', title: 'Rate limiter', difficulty: 'Hard', time: '40 min', requirement: [], solution: "" },
+  {
+    id: '02',
+    title: 'Async data pipeline (cipher/decipher and compression/decompression)',
+    description: {
+      p: "",
+      h1: "",
+    },
+    difficulty: 'Easy',
+    time: '5 min',
+    requirement: [],
+    solution: ""
+  },
+  {
+    id: '03',
+    title: 'Tree traversal',
+    difficulty: 'Hard',
+    time: '15 min',
+    requirement: [],
+    solution: ""
+  },
+  {
+    id: '04',
+    title: 'Rate limiter',
+    difficulty: 'Hard',
+    time: '20 min',
+    requirement: [],
+    solution: ""
+  },
+  {
+    id: '05',
+    title: 'Writing a LRU Cache',
+    difficulty: 'Expert',
+    time: '40 min',
+    requirement: [],
+    solution: ""
+  },
 ]
 
 type LanguagesOption = {
@@ -146,13 +195,15 @@ const renderLanguageSelected = (option: LanguagesOption) => {
   )
 }
 
-const renderCandidate = (candidate: Candidate) => {
+const renderCandidate = (candidate: Candidate, clientId: string | null) => {
   return (
     <div className="profile">
       <div className="avatar">{candidate.avatar}<span className="online-dot" /></div>
       <div className="profile-copy"><strong>{candidate.firstName} {candidate.lastName}</strong>
-        <span>Candidate · #{candidate.id}</span>
+        <span>Candidate · #{candidate.id}</span><hr />
+        {clientId && (<span>{clientId}</span>)}
       </div>
+
       <Button className="icon-button" aria-label="Profile settings" onClick={handleProfileSettingClicked}><Settings2 /></Button>
     </div>
   );
@@ -181,6 +232,14 @@ const defaultCandidate: Candidate = {
   id: 1,
 }
 
+const defaultLanguage: LanguagesOption = {
+  id: 0,
+  text: "javascript",
+  checked: true,
+  badge: "js-badge",
+  short: "JS"
+};
+
 // interface ServerToClientEvents {
 //   noArg: () => void;
 //   basicEmit: (a: number, b: string, c: Buffer) => void;
@@ -200,7 +259,16 @@ const defaultCandidate: Candidate = {
 //   age: number;
 // }
 
+const getOutputFilename = (filename: string, extension: string) => {
+  return `${filename}.${extension.toLocaleLowerCase()}`;
+}
+
 export default function Page() {
+
+  const [line, setLine] = useState(0);
+  const [column, setColumn] = useState(0);
+  const [socket, setSocket] = useState<WebSocket | null>(null)
+  const [clientId, setClientId] = useState<string | null>(null)
   const [candidate, setCandidate] = useState<Candidate>(defaultCandidate);
   const [activeExercise, setActiveExercise] = useState<Exercise>(exercises[0]);
   const [code, setCode] = useState(starterCode);
@@ -208,35 +276,32 @@ export default function Page() {
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<'idle' | 'passed' | 'failed'>('idle');
   const [remainingSeconds, setRemainingSeconds] = useState(1 * 60 * 42 + 18);
-  const [language, setLanguage] = useState<LanguagesOption>({ id: 0, text: "javascript", checked: true, badge: "js-badge", short: "JS" });
+  const [language, setLanguage] = useState<LanguagesOption>(defaultLanguage);
   const [focusedPane, setFocusedPane] = useState<string | null>(null);
   const [resultView, setResultView] = useState<'preview' | 'console'>('preview');
   const [draggedPane, setDraggedPane] = useState<string | null>(null);
   const [paneOrder, setPaneOrder] = useState(['directions', 'result', 'editor', 'tests']);
 
   const monaco = useMonaco();
-  const hostname = process.env.HOSTNAME || "http://localhost:3000";
+  const hostname = process.env.HOSTNAME || "localhost:3001";
   const authToken = process.env.AUTH_TOKEN || "secret";
 
   // TODO : make typesafe
-  const manager = new Manager/*<ServerToClientEvents, ClientToServerEvents>*/("ws://" + hostname, {
-    forceNew: true,
-    transports: ["websocket"],
-    reconnectionDelayMax: 10000,
-    query: {
-      "my-key": "my-value"
-    }
-  });
-
-  const socket = manager.socket("/sockets", {
-    auth: {
-      token: "secret"
-    }
-  });
 
   useEffect(() => {
     if (monaco) {
       console.log('here is the monaco instance:', monaco);
+
+      const { editor } = monaco;
+      if (editor) {
+        const [codeEditor, ...editors] = editor.getEditors();
+
+        codeEditor.onDidChangeCursorPosition((e) => {
+          const { lineNumber, column } = e.position;
+          setLine(lineNumber);
+          setColumn(column);
+        });
+      }
     }
   }, [monaco]);
 
@@ -249,6 +314,82 @@ export default function Page() {
 
   useEffect(() => {
 
+    const manager = new Manager/*<ServerToClientEvents, ClientToServerEvents>*/("ws://" + hostname, {
+      forceNew: true,
+      transports: ["websocket"],
+      reconnectionDelayMax: 10000,
+    });
+
+    const socket = manager.socket("/", {
+      auth: {
+        token: "secret"
+      }
+    });
+
+    // client-side
+    socket.on("connect", () => {
+
+      setSocket(socket);
+      setClientId(socket.id as string);
+
+      const engine = socket.io.engine;
+      console.log("[socket.io]", engine.transport.name);
+
+      engine.once("upgrade", () => {
+        console.log("[socket.io]", engine.transport.name);
+      });
+
+    });
+
+
+    socket.on("runner:result", (result) => {
+      console.log("result ", result);
+    });
+
+
+    return () => {
+      socket.disconnect();
+    }
+  }, [])
+
+
+
+  /*
+  useEffect(() => {
+
+
+    debugger
+
+    socket.on("connect", () => {
+      const engine = socket.io.engine;
+      console.log(engine.transport.name); // in most cases, prints "polling"
+
+      engine.once("upgrade", () => {
+        // called when the transport is upgraded (i.e. from HTTP long-polling to WebSocket)
+        console.log(engine.transport.name); // in most cases, prints "websocket"
+      });
+
+      engine.on("packet", ({ type, data }) => {
+        // called for each packet received
+        console.log("[socket.io]: packet: " + { type, data })
+      });
+
+      engine.on("packetCreate", ({ type, data }) => {
+        // called for each packet sent
+        console.log("[socket.io]: packetCreate: " + { type, data });
+      });
+
+      engine.on("drain", () => {
+        // called when the write buffer is drained
+        console.log("[socket.io]: drain: ");
+      });
+
+      engine.on("close", (reason) => {
+        // called when the underlying connection is closed
+        console.log("[socket.io]: close: ", reason);
+      });
+    });
+
     const onConnect = () => {
       const transport = socket.io.engine.transport.name; // in most cases, "polling"
       // window.log.debug(`[AppTemplate][socket.io::transport]: ${transport}`);
@@ -257,7 +398,12 @@ export default function Page() {
         const upgradedTransport = socket.io.engine.transport.name;
         // window.log.debug(`[AppTemplate][socket.io::upgradedTransport]: ${upgradedTransport}`);
       });
+    }
 
+    const onConnected = (msg: OnConnectedMessage) => {
+      const { clientId } = msg;
+      console.log("Got clientId from server ", clientId);
+      setClientId(clientId);
     }
 
     const onError = (err: unknown) => {
@@ -267,10 +413,6 @@ export default function Page() {
     }
 
     const onDisconnect = () => { }
-
-    const onExecuteRequest = (msg) => {
-
-    };
 
     const onExecuteSuccess = (msg) => {
 
@@ -292,27 +434,28 @@ export default function Page() {
     socket.on("connect", onConnect);
     socket.on("connect_error", onError);
     socket.on("disconnect", onDisconnect);
+    socket.on("connected", onConnected);
 
-    socket.on("sandbox:execute:request", onExecuteRequest);
-    socket.on("sandbox:execute:success", onExecuteSuccess);
-    socket.on("sandbox:execute:failure", onExecuteFailure);
-    socket.on("sandbox:execute:timeout", onExecuteTimeout);
-    socket.on("sandbox:execute:error", onExecuteError);
 
+    socket.on("runner:success", onExecuteSuccess);
+    socket.on("runner:failure", onExecuteFailure);
+    socket.on("runner:timeout", onExecuteTimeout);
+    socket.on("runner:error", onExecuteError);
 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off("connect_error", onError);
 
-      socket.off("sandbox:execute:request", onExecuteRequest);
-      socket.off("sandbox:execute:success", onExecuteSuccess);
-      socket.off("sandbox:execute:failure", onExecuteFailure);
-      socket.off("sandbox:execute:timeout", onExecuteTimeout);
-      socket.off("sandbox:execute:error", onExecuteError);
+      // socket.off("runner:request", onExecuteRequest);
+      socket.off("runner:success", onExecuteSuccess);
+      socket.off("runner:failure", onExecuteFailure);
+      socket.off("runner:timeout", onExecuteTimeout);
+      socket.off("runner:error", onExecuteError);
     };
 
-  }, [socket])
+  }, [socket]);
+  */
 
   const runTests = () => {
     setIsRunning(true)
@@ -347,9 +490,15 @@ export default function Page() {
 
   const handleRunTest = (/* event: React.SyntheticEvent */) => {
 
-    const finalCode = `${code}\n${testCode}`;
-    // alert(finalCode);
+    if (!socket) {
+      // TODO : proper error handling / display
+      alert("Websocket offline cannot run code");
+      return;
+    }
 
+    debugger
+
+    socket.emit("runner:request", { code, testCode, clientId: socket.id });
   }
 
   const handleResetClicked = () => {
@@ -360,11 +509,19 @@ export default function Page() {
   return (
     <main className="app-shell">
       <aside className="sidebar">
-        <div className="brand"><div className="brand-mark"><Code2 /></div><div><strong>codebench</strong><span>assessment studio</span></div></div>
-        {renderCandidate(candidate)}
+        <div className="brand">
+          <div className="brand-mark">
+            <Code2 />
+          </div>
+          <div>
+            <strong>codebench</strong>
+            <span>assessment studio</span>
+          </div>
+        </div>
+        {renderCandidate(candidate, clientId)}
         <div className="exercise-heading">
           <span>EXERCISES</span>
-          <span className="count">05</span>
+          <span className="count">{exercises.length}</span>
         </div>
         <nav className="exercise-list" aria-label="Exercises">
           {exercises.map((exercise) =>
@@ -416,7 +573,8 @@ export default function Page() {
             style={{ order: paneOrder.indexOf('directions') }}
             className="pane directions-pane"
             onDragOver={(event) => event.preventDefault()}
-            onDrop={() => movePane('directions')}>
+            onDrop={() => movePane('directions')}
+          >
             <PaneHeader paneId="directions"
               onDragStart={setDraggedPane}
               icon={<FileCode2 />}
@@ -429,9 +587,8 @@ export default function Page() {
               <h1>{activeExercise.description?.h1}</h1>
               <p className="intro">{activeExercise.description?.p}</p>
               <div className="section-block">
-                <h2>{activeExercise.description?.h2}</h2>
+                <h2>Task</h2>
                 <p dangerouslySetInnerHTML={{ __html: activeExercise.task as string }}>
-
                 </p>
               </div>
               <div className="section-block">
@@ -444,8 +601,48 @@ export default function Page() {
             </div>
             <div className="resize-corner" />
           </section>
-          <section className="pane result-pane" style={{ order: paneOrder.indexOf('result') }} onDragOver={(event) => event.preventDefault()} onDrop={() => movePane('result')}>
-            <PaneHeader paneId="result" onDragStart={setDraggedPane} icon={<Zap />} label="Result" meta={resultView === 'preview' ? 'Live preview' : 'stdout / stderr'} action={<span className="live-dot"><i /> Live</span>} /><div className="result-tabs" role="tablist" aria-label="Result views"><button role="tab" aria-selected={resultView === 'preview'} className={resultView === 'preview' ? 'active' : ''} onClick={() => setResultView('preview')}><Zap /> Preview</button><button role="tab" aria-selected={resultView === 'console'} className={resultView === 'console' ? 'active' : ''} onClick={() => setResultView('console')}><Terminal /> Console</button></div>{resultView === 'preview' ? <div className="result-content"><div className="result-placeholder"><div className={`result-icon ${result}`}><Check /></div><h2>{result === 'passed' ? 'All tests passed' : 'Your result will appear here'}</h2><p>{result === 'passed' ? 'Nice work — the solution meets every requirement.' : 'Run your solution to see the output and test feedback.'}</p></div>{result === 'passed' && <div className="result-summary"><div><span>STATUS</span><strong className="success-text">Passed</strong></div><div><span>TESTS</span><strong>6 / 6</strong></div><div><span>RUNTIME</span><strong>42 ms</strong></div></div>}</div> : <div className="console-view" role="log" aria-live="polite"><div className="console-line"><span className="console-prompt">›</span><span>transformUsers(users)</span></div>{result === 'passed' ? <><div className="console-line console-output"><span className="console-prompt">→</span><span>[{`{ name: 'Avery', score: 92, active: true, rank: 1 }`}, {`{ name: 'Jordan', score: 87, active: true, rank: 2 }`}]</span></div><div className="console-line console-success"><span className="console-prompt">✓</span><span>6 tests passed in 42 ms</span></div></> : <div className="console-muted">Run tests to stream output here…</div>}</div>}<div className="resize-corner" /></section>
+          <section
+            className="pane result-pane"
+            style={{ order: paneOrder.indexOf('result') }}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={() => movePane('result')}>
+            <PaneHeader
+              paneId="result"
+              onDragStart={setDraggedPane}
+              icon={<Zap />}
+              label="Result"
+              meta={resultView === 'preview' ? 'Live preview' : 'stdout / stderr'}
+              action={
+                <span className="live-dot"><i /> Live</span>} />
+            <div className="result-tabs" role="tablist" aria-label="Result views">
+              <button
+                role="tab"
+                aria-selected={resultView === 'preview'}
+                className={resultView === 'preview' ? 'active' : ''}
+                onClick={() => setResultView('preview')}
+              >
+                <Zap /> Preview
+              </button>
+              <button
+                role="tab"
+                aria-selected={resultView === 'console'}
+                className={resultView === 'console' ? 'active' : ''}
+                onClick={() => setResultView('console')}
+              >
+                <Terminal /> Console
+              </button>
+            </div>{resultView === 'preview'
+              ?
+              <div className="result-content">
+                <div className="result-placeholder">
+                  <div className={`result-icon ${result}`}>
+                    <Check />
+                  </div>
+                  <h2>{result === 'passed' ? 'All tests passed' : 'Your result will appear here'}</h2>
+                  <p>{result === 'passed' ? 'Nice work — the solution meets every requirement.' : 'Run your solution to see the output and test feedback.'}</p>
+                </div>{result === 'passed' && <div className="result-summary"><div><span>STATUS</span><strong className="success-text">Passed</strong></div><div><span>TESTS</span><strong>6 / 6</strong></div><div><span>RUNTIME</span><strong>42 ms</strong></div></div>}</div> : <div className="console-view" role="log" aria-live="polite"><div className="console-line"><span className="console-prompt">›</span><span>transformUsers(users)</span></div>{result === 'passed' ? <><div className="console-line console-output"><span className="console-prompt">→</span><span>[{`{ name: 'Avery', score: 92, active: true, rank: 1 }`}, {`{ name: 'Jordan', score: 87, active: true, rank: 2 }`}]</span></div><div className="console-line console-success"><span className="console-prompt">✓</span><span>6 tests passed in 42 ms</span></div></> : <div className="console-muted">Run tests to stream output here…</div>}</div>}
+            <div className="resize-corner" />
+          </section>
           <section
             style={{ order: paneOrder.indexOf('editor') }}
             className="pane editor-pane"
@@ -488,9 +685,9 @@ export default function Page() {
                 onChange={(value) => setCode(value ?? '')}
                 options={{
                   minimap: {
-                    enabled: false
+                    enabled: true
                   },
-                  fontSize: 13,
+                  fontSize: 16,
                   lineHeight: 21,
                   padding: { top: 18 },
                   wordWrap: 'on',
@@ -503,8 +700,8 @@ export default function Page() {
               />
             </div>
             <div className="editor-status">
-              <span>Ln 7, Col 10</span><span>Spaces: 2</span>
-              <span>UTF-8</span><span>JavaScript</span>
+              <span>Ln {line}, Col {column}</span><span>Spaces: 2</span>
+              <span>UTF-8</span><span>{language.text}</span>
             </div>
             <div className="resize-corner" />
           </section>
