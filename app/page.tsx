@@ -18,6 +18,7 @@ import {
   Timer,
   // X,
   Zap,
+  CircleX,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
@@ -37,6 +38,34 @@ import type { Socket } from "socket.io-client";
 type WebSocket = Socket<any, any>
 
 type Difficuty = "Easy" | "Medium" | "Hard" | "Expert";
+
+export type LanguagesOption = {
+  id: number, text: "javascript" | "typescript",
+  checked: boolean,
+  badge: "js-badge" | "ts-badge",
+  short: "JS" | "TS"
+};
+
+type PaneHeaderProps = {
+  icon: React.ReactNode;
+  label: string;
+  meta?: string;
+  action?: React.ReactNode;
+  paneId?: string;
+  onDragStart?: (paneId: string) => void
+};
+
+type Candidate = {
+  avatar: string,
+  firstName: string,
+  lastName: string,
+  id: number,
+}
+
+type Status = "RUNNING" | "PASSED" | "FAILED" | "SKIPPED";
+
+type Test = { name: string, status: Status, durationMs?: number };
+type Counts = { pass: number, fail: number, durationMs: number, success: boolean };
 
 export type Exercise = {
   id: string;
@@ -59,46 +88,88 @@ export type Exercise = {
 
 
 const starterCode = `
-const users = [
-  { name: "Avery", score: 92, active: true },
-  { name: "Sam", score: 68, active: false },
-  { name: "Jordan", score: 87, active: true },
-];
+type User = { name: string, score: number, active: boolean, rank?: number };
 
-function transformUsers(users) {
-  const newUsers = [...users].filter(u => u.active).sort((a, b) => b.score - a.score).map((u, i) => ({ ...u, rank: i + 1 }));
+const users: User[] = [
+  { name: "Avery", score: 92, active: true },
+  { name: "Sam", score: 68, active: true },
+  { name: "Jordan", score: 87, active: true },
+]
+
+function transformUsers(users: User[]) {
+  const newUsers = [...users]
+    .filter((u: any) => u.active)
+    .sort((a: any, b: any) => b.score - a.score)
+    .map((u: any, i: number) => ({ ...u, rank: i + 1 }));
+
   return newUsers;
-};
+}
 `
 
 const starterTestCode = `
+import { describe, it } from "node:test";
+
+type User = { name: string, score: number, active: boolean, rank?: number };
+
+function transformUsers(users: User[]) {
+  const newUsers = [...users]
+    .filter((u: any) => u.active)
+    .sort((a: any, b: any) => b.score - a.score)
+    .map((u: any, i: number) => ({ ...u, rank: i + 1 }));
+
+  return newUsers
+}
+
 describe("testing filtering function", () => {
-  it('returns ranked active users', (t) => {
+  it('returns 3 ranked active users', (t) => {
+    const users: User[] = [
+      { name: "Avery", score: 92, active: true },
+      { name: "Sam", score: 68, active: true },
+      { name: "Jordan", score: 87, active: true },
+    ]
+    t.assert.deepEqual(transformUsers(users), [
+      { name: 'Avery', score: 92, active: true, rank: 1 },
+      { name: 'Jordan', score: 87, active: true, rank: 2 },
+      { name: "Sam", score: 68, active: true, rank: 3 },
+    ])
+  })
+  it('returns 2 ranked active users', (t) => {
+    const users: User[] = [
+      { name: "Avery", score: 92, active: true },
+      { name: "Sam", score: 68, active: false },
+      { name: "Jordan", score: 87, active: true },
+    ]
     t.assert.deepEqual(transformUsers(users), [
       { name: 'Avery', score: 92, active: true, rank: 1 },
       { name: 'Jordan', score: 87, active: true, rank: 2 },
     ])
   })
-})
-
-describe("a failing test", () => {
-  it('should fail to return ranked active users', (t) => {
+  it.expectFailure('should fail to return ranked active users', (t) => {
+    const users: User[] = [
+      { name: "Avery", score: 92, active: true },
+      { name: "Sam", score: 68, active: false },
+      { name: "Jordan", score: 87, active: true },
+    ]
     t.assert.deepEqual(transformUsers(users), [
       { name: 'Avery', score: 99, active: true, rank: 2 },
       { name: 'Jordan', score: 87, active: true, rank: 3 },
     ])
   })
+  it('should fail to return ranked active users', (t) => {
+    const users: User[] = [
+      { name: "Avery", score: 92, active: true },
+      { name: "Sam", score: 68, active: false },
+      { name: "Jordan", score: 87, active: true },
+    ]
+    t.assert.deepEqual(transformUsers(users), [
+      { name: 'Avery', score: 99, active: true, rank: 2 },
+      { name: 'Jordan', score: 87, active: true, rank: 3 },
+    ])
+  })    
 })
 `
 
 
-// todo : change solution from string to an object : 
-// { 
-//   returnValue: string,
-//   testMustPass: boolean,
-//   maximumDuration: number;
-// }   
-// 
 const exercises: Exercise[] = [
   {
     id: '01',
@@ -166,23 +237,6 @@ const exercises: Exercise[] = [
   },
 ]
 
-type LanguagesOption = {
-  id: number, text: "javascript" | "typescript",
-  checked: boolean,
-  badge: "js-badge" | "ts-badge",
-  short: "JS" | "TS"
-};
-
-type PaneHeaderProps = {
-  icon: React.ReactNode;
-  label: string;
-  meta?: string;
-  action?: React.ReactNode;
-  paneId?: string;
-  onDragStart?: (paneId: string) => void
-};
-
-
 const handleProfileSettingClicked = () => { };
 
 const capitalize = (string: string) => string.slice(0, 1).toUpperCase() + string.slice(1)
@@ -218,12 +272,6 @@ function PaneHeader({ icon, label, meta, action, paneId, onDragStart }: PaneHead
   )
 }
 
-type Candidate = {
-  avatar: string,
-  firstName: string,
-  lastName: string,
-  id: number,
-}
 
 const defaultCandidate: Candidate = {
   avatar: "SR",
@@ -240,25 +288,6 @@ const defaultLanguage: LanguagesOption = {
   short: "JS"
 };
 
-// interface ServerToClientEvents {
-//   noArg: () => void;
-//   basicEmit: (a: number, b: string, c: Buffer) => void;
-//   withAck: (d: string, callback: (e: number) => void) => void;
-// }
-
-// interface ClientToServerEvents {
-//   hello: () => void;
-// }
-
-// interface InterServerEvents {
-//   ping: () => void;
-// }
-
-// interface SocketData {
-//   name: string;
-//   age: number;
-// }
-
 const getOutputFilename = (filename: string, extension: string) => {
   return `${filename}.${extension.toLocaleLowerCase()}`;
 }
@@ -269,6 +298,10 @@ export default function Page() {
   const [column, setColumn] = useState(0);
   const [socket, setSocket] = useState<WebSocket | null>(null)
   const [clientId, setClientId] = useState<string | null>(null)
+  const [focusedPane, setFocusedPane] = useState<string | null>(null);
+  const [draggedPane, setDraggedPane] = useState<string | null>(null);
+  const [tests, setTests] = useState<Test[]>([{ name: "test", status: "PASSED", durationMs: 654 }, { name: "test2", status: "FAILED", durationMs: 654 }]);
+  const [summary, setSummary] = useState<Counts>();
   const [candidate, setCandidate] = useState<Candidate>(defaultCandidate);
   const [activeExercise, setActiveExercise] = useState<Exercise>(exercises[0]);
   const [code, setCode] = useState(starterCode);
@@ -277,9 +310,8 @@ export default function Page() {
   const [result, setResult] = useState<'idle' | 'passed' | 'failed'>('idle');
   const [remainingSeconds, setRemainingSeconds] = useState(1 * 60 * 42 + 18);
   const [language, setLanguage] = useState<LanguagesOption>(defaultLanguage);
-  const [focusedPane, setFocusedPane] = useState<string | null>(null);
+
   const [resultView, setResultView] = useState<'preview' | 'console'>('preview');
-  const [draggedPane, setDraggedPane] = useState<string | null>(null);
   const [paneOrder, setPaneOrder] = useState(['directions', 'result', 'editor', 'tests']);
 
   const monaco = useMonaco();
@@ -344,6 +376,13 @@ export default function Page() {
 
     socket.on("runner:result", (result) => {
       console.log("result ", result);
+      setTests(result.result);
+    });
+
+    socket.on("runner:test:summary", (msg) => {
+      const { data: { pass, fail }, duration_ms, success } = msg.event;
+      setSummary({ pass, fail, durationMs: duration_ms, success });
+      console.log("event ", msg.event, tests);
     });
 
 
@@ -635,12 +674,24 @@ export default function Page() {
               ?
               <div className="result-content">
                 <div className="result-placeholder">
-                  <div className={`result-icon ${result}`}>
+                  <div className={`result-icon ${summary?.success ? "passed" : "failed"}`}>
                     <Check />
                   </div>
-                  <h2>{result === 'passed' ? 'All tests passed' : 'Your result will appear here'}</h2>
-                  <p>{result === 'passed' ? 'Nice work — the solution meets every requirement.' : 'Run your solution to see the output and test feedback.'}</p>
-                </div>{result === 'passed' && <div className="result-summary"><div><span>STATUS</span><strong className="success-text">Passed</strong></div><div><span>TESTS</span><strong>6 / 6</strong></div><div><span>RUNTIME</span><strong>42 ms</strong></div></div>}</div> : <div className="console-view" role="log" aria-live="polite"><div className="console-line"><span className="console-prompt">›</span><span>transformUsers(users)</span></div>{result === 'passed' ? <><div className="console-line console-output"><span className="console-prompt">→</span><span>[{`{ name: 'Avery', score: 92, active: true, rank: 1 }`}, {`{ name: 'Jordan', score: 87, active: true, rank: 2 }`}]</span></div><div className="console-line console-success"><span className="console-prompt">✓</span><span>6 tests passed in 42 ms</span></div></> : <div className="console-muted">Run tests to stream output here…</div>}</div>}
+                  <h2>{summary?.success ? 'All tests passed' : 'Your result will appear here'}</h2>
+                </div>
+                {tests.map(test => {
+                  return (
+                    <div className="test-row" key={test.name}>
+                      <div className={`result-icon-${summary?.success ? "passed" : "failed"}`}>
+                        {test.status === "PASSED" ? <Check color={"green"} /> : <CircleX color={"red"} />}
+                      </div>
+                      <span>{test.name}</span>
+                      <span className="test-time">&lt; {test.durationMs} ms</span>
+                    </div>
+                  );
+                })}
+              </div> : <div className="console-view" role="log" aria-live="polite"><div className="console-line"><span className="console-prompt">›</span><span>transformUsers(users)</span></div>{result === 'passed' ? <><div className="console-line console-output"><span className="console-prompt">→</span><span>[{`{ name: 'Avery', score: 92, active: true, rank: 1 }`}, {`{ name: 'Jordan', score: 87, active: true, rank: 2 }`}]</span></div><div className="console-line console-success"><span className="console-prompt">✓</span><span>6 tests passed in 42 ms</span></div></> : <div className="console-muted">Run tests to stream output here…</div>}
+              </div>}
             <div className="resize-corner" />
           </section>
           <section
@@ -649,7 +700,12 @@ export default function Page() {
             onDragOver={(event) => event.preventDefault()}
             onDrop={() => movePane('editor')}
             onFocus={() => setFocusedPane('editor')}>
-            <PaneHeader paneId="editor" onDragStart={setDraggedPane} icon={<Terminal />} label="Code editor" meta="solution.js"
+            <PaneHeader
+              paneId="editor"
+              onDragStart={setDraggedPane}
+              icon={<Terminal />}
+              label="Code editor"
+              meta={`solution.${language.short.toLocaleLowerCase()}`}
               action={
                 <div className="editor-actions">
                   <span className="language-label">
@@ -679,7 +735,7 @@ export default function Page() {
             <div className="editor-wrap">
               <Editor
                 height="100%"
-                language="javascript"
+                language={language.text}
                 theme="vs-dark"
                 value={code}
                 onChange={(value) => setCode(value ?? '')}
@@ -695,7 +751,7 @@ export default function Page() {
                   smoothScrolling: true,
                   renderLineHighlight: 'line',
                   overviewRulerBorder: false,
-                  fontFamily: "'JetBrains Mono', 'SFMono-Regular', Consolas, monospace"
+                  fontFamily: "'JetBrains Mono', 'SFMono-Regular', 'Lucinda console', Consolas, monospace"
                 }}
               />
             </div>

@@ -746,6 +746,7 @@ button {
     background: #1a3227;
 }
 
+
 .result-placeholder h2 {
     color: #b9c3c8;
     font-size: 12px;
@@ -938,15 +939,15 @@ button {
 .test-check {
     display: grid;
     place-items: center;
-    width: 15px;
-    height: 15px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     color: #101913;
-    background: var(--accent);
+
 }
 
 .test-check svg {
-    width: 10px;
+    width: 24px;
 }
 
 .test-time {
