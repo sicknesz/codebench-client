@@ -21,6 +21,7 @@ import {
   CircleX,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
+
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -31,9 +32,12 @@ import {
   // DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { TestResult } from "@/components/Alert"
 
 import { Manager } from "socket.io-client";
 import type { Socket } from "socket.io-client";
+// import { monaco as CodingMonaco } from "@codingame/monaco-editor-react";
+// import CodingEditor from "@codingame/monaco-editor-react";
 
 type WebSocket = Socket<any, any>
 
@@ -84,6 +88,7 @@ export type Exercise = {
   testCode?: string;
   score?: number;
   solution: string;
+  testFiles?: string[];
 }
 
 
@@ -95,6 +100,10 @@ const users: User[] = [
   { name: "Sam", score: 68, active: true },
   { name: "Jordan", score: 87, active: true },
 ]
+
+/*
+  Install : https://github.com/xtermjs/xterm.js/ to get a terminal working on the page
+*/
 
 function transformUsers(users: User[]) {
   const newUsers = [...users]
@@ -197,7 +206,10 @@ const exercises: Exercise[] = [
     solution: `[
      { name: 'Avery', score: 92, active: true, rank: 1 },
      { name: 'Jordan', score: 87, active: true, rank: 2 },
-    ]`
+    ]`,
+    testFiles: [
+      '__tests__/exercise.test.ts'
+    ]
   },
   {
     id: '02',
@@ -206,7 +218,7 @@ const exercises: Exercise[] = [
       p: "",
       h1: "",
     },
-    difficulty: 'Easy',
+    difficulty: 'Hard',
     time: '5 min',
     requirement: [],
     solution: ""
@@ -292,6 +304,7 @@ const getOutputFilename = (filename: string, extension: string) => {
   return `${filename}.${extension.toLocaleLowerCase()}`;
 }
 
+
 export default function Page() {
 
   const [line, setLine] = useState(0);
@@ -318,7 +331,12 @@ export default function Page() {
   const hostname = process.env.HOSTNAME || "localhost:3001";
   const authToken = process.env.AUTH_TOKEN || "secret";
 
+  // const [editor, setEditor] = useState<EditorApp | null>(null)
+
+  // editorApp = await runTsWrapper();
+
   // TODO : make typesafe
+
 
   useEffect(() => {
     if (monaco) {
@@ -335,6 +353,9 @@ export default function Page() {
         });
       }
     }
+
+    // CodingMonaco.editor.setTheme("dark");
+
   }, [monaco]);
 
   useEffect(() => {
@@ -346,11 +367,13 @@ export default function Page() {
 
   useEffect(() => {
 
-    const manager = new Manager/*<ServerToClientEvents, ClientToServerEvents>*/("ws://" + hostname, {
+    const websocketOptions = {
       forceNew: true,
       transports: ["websocket"],
       reconnectionDelayMax: 10000,
-    });
+    }
+
+    const manager = new Manager("ws://" + hostname, websocketOptions);
 
     const socket = manager.socket("/", {
       auth: {
@@ -392,116 +415,6 @@ export default function Page() {
   }, [])
 
 
-
-  /*
-  useEffect(() => {
-
-
-    debugger
-
-    socket.on("connect", () => {
-      const engine = socket.io.engine;
-      console.log(engine.transport.name); // in most cases, prints "polling"
-
-      engine.once("upgrade", () => {
-        // called when the transport is upgraded (i.e. from HTTP long-polling to WebSocket)
-        console.log(engine.transport.name); // in most cases, prints "websocket"
-      });
-
-      engine.on("packet", ({ type, data }) => {
-        // called for each packet received
-        console.log("[socket.io]: packet: " + { type, data })
-      });
-
-      engine.on("packetCreate", ({ type, data }) => {
-        // called for each packet sent
-        console.log("[socket.io]: packetCreate: " + { type, data });
-      });
-
-      engine.on("drain", () => {
-        // called when the write buffer is drained
-        console.log("[socket.io]: drain: ");
-      });
-
-      engine.on("close", (reason) => {
-        // called when the underlying connection is closed
-        console.log("[socket.io]: close: ", reason);
-      });
-    });
-
-    const onConnect = () => {
-      const transport = socket.io.engine.transport.name; // in most cases, "polling"
-      // window.log.debug(`[AppTemplate][socket.io::transport]: ${transport}`);
-
-      socket.io.engine.on("upgrade", () => {
-        const upgradedTransport = socket.io.engine.transport.name;
-        // window.log.debug(`[AppTemplate][socket.io::upgradedTransport]: ${upgradedTransport}`);
-      });
-    }
-
-    const onConnected = (msg: OnConnectedMessage) => {
-      const { clientId } = msg;
-      console.log("Got clientId from server ", clientId);
-      setClientId(clientId);
-    }
-
-    const onError = (err: unknown) => {
-      if (err instanceof Error) {
-        console.log(`connect_error due to ${err.message}`);
-      }
-    }
-
-    const onDisconnect = () => { }
-
-    const onExecuteSuccess = (msg) => {
-
-    };
-
-    const onExecuteFailure = (msg) => {
-
-    };
-
-    const onExecuteTimeout = (msg) => {
-
-    };
-
-    const onExecuteError = (msg) => {
-
-    };
-
-
-    socket.on("connect", onConnect);
-    socket.on("connect_error", onError);
-    socket.on("disconnect", onDisconnect);
-    socket.on("connected", onConnected);
-
-
-    socket.on("runner:success", onExecuteSuccess);
-    socket.on("runner:failure", onExecuteFailure);
-    socket.on("runner:timeout", onExecuteTimeout);
-    socket.on("runner:error", onExecuteError);
-
-    return () => {
-      socket.off('connect', onConnect);
-      socket.off('disconnect', onDisconnect);
-      socket.off("connect_error", onError);
-
-      // socket.off("runner:request", onExecuteRequest);
-      socket.off("runner:success", onExecuteSuccess);
-      socket.off("runner:failure", onExecuteFailure);
-      socket.off("runner:timeout", onExecuteTimeout);
-      socket.off("runner:error", onExecuteError);
-    };
-
-  }, [socket]);
-  */
-
-  const runTests = () => {
-    setIsRunning(true)
-    setResult('idle')
-    window.setTimeout(() => { setIsRunning(false); setResult('passed') }, 850)
-  }
-
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60)
     const remaining = seconds % 60
@@ -529,6 +442,8 @@ export default function Page() {
 
   const handleRunTest = (/* event: React.SyntheticEvent */) => {
 
+    setIsRunning(true)
+
     if (!socket) {
       // TODO : proper error handling / display
       alert("Websocket offline cannot run code");
@@ -538,6 +453,7 @@ export default function Page() {
     debugger
 
     socket.emit("runner:request", { code, testCode, clientId: socket.id });
+    setIsRunning(false);
   }
 
   const handleResetClicked = () => {
@@ -602,7 +518,7 @@ export default function Page() {
             <button className="reset-button" onClick={handleResetClicked}>
               <RotateCcw /> Reset
             </button>
-            <Button className="run-button" onClick={runTests} disabled={isRunning}>
+            <Button className="run-button" onClick={handleRunTest} disabled={isRunning}>
               <Play /> {isRunning ? 'Running…' : 'Run tests'}<kbd>⌘ ↵</kbd>
             </Button>
           </div>
@@ -614,11 +530,12 @@ export default function Page() {
             onDragOver={(event) => event.preventDefault()}
             onDrop={() => movePane('directions')}
           >
-            <PaneHeader paneId="directions"
+            <PaneHeader
+              paneId="directions"
               onDragStart={setDraggedPane}
               icon={<FileCode2 />}
               label="Directions"
-              meta="README.md"
+              meta="TODO.md"
               action={<button className="more-button" aria-label="Directions options">•••</button>}
             />
             <div className="pane-scroll">
@@ -648,11 +565,13 @@ export default function Page() {
             <PaneHeader
               paneId="result"
               onDragStart={setDraggedPane}
-              icon={<Zap />}
-              label="Result"
-              meta={resultView === 'preview' ? 'Live preview' : 'stdout / stderr'}
+              icon={resultView === 'preview' ? <FlaskConical /> : <Terminal />}
+              label={resultView === 'preview' ? "Result" : "Terminal"}
+              meta={resultView === 'preview' ? 'Test Result' : 'stdout / stderr'}
               action={
-                <span className="live-dot"><i /> Live</span>} />
+                <span className="live-dot"><i /> Live</span>
+              }
+            />
             <div className="result-tabs" role="tablist" aria-label="Result views">
               <button
                 role="tab"
@@ -660,7 +579,7 @@ export default function Page() {
                 className={resultView === 'preview' ? 'active' : ''}
                 onClick={() => setResultView('preview')}
               >
-                <Zap /> Preview
+                Test Result
               </button>
               <button
                 role="tab"
@@ -668,32 +587,26 @@ export default function Page() {
                 className={resultView === 'console' ? 'active' : ''}
                 onClick={() => setResultView('console')}
               >
-                <Terminal /> Console
+                Console
               </button>
-            </div>{resultView === 'preview'
-              ?
-              <div className="result-content">
-                <div className="result-placeholder">
-                  <div className={`result-icon ${summary?.success ? "passed" : "failed"}`}>
-                    <Check />
-                  </div>
-                  <h2>{summary?.success ? 'All tests passed' : 'Your result will appear here'}</h2>
-                </div>
-                {tests.map(test => {
-                  return (
-                    <div className="test-row" key={test.name}>
-                      <div className={`result-icon-${summary?.success ? "passed" : "failed"}`}>
-                        {test.status === "PASSED" ? <Check color={"green"} /> : <CircleX color={"red"} />}
-                      </div>
-                      <span>{test.name}</span>
-                      <span className="test-time">&lt; {test.durationMs} ms</span>
-                    </div>
-                  );
-                })}
-              </div> : <div className="console-view" role="log" aria-live="polite"><div className="console-line"><span className="console-prompt">›</span><span>transformUsers(users)</span></div>{result === 'passed' ? <><div className="console-line console-output"><span className="console-prompt">→</span><span>[{`{ name: 'Avery', score: 92, active: true, rank: 1 }`}, {`{ name: 'Jordan', score: 87, active: true, rank: 2 }`}]</span></div><div className="console-line console-success"><span className="console-prompt">✓</span><span>6 tests passed in 42 ms</span></div></> : <div className="console-muted">Run tests to stream output here…</div>}
-              </div>}
+            </div>
+            {resultView === "preview" ? <div className="result-content">
+              {tests.map((test, i) => {
+                const isSuccess = test.status === "PASSED";
+                return (
+                  <TestResult
+                    key={test.name + i}
+                    variant={isSuccess ? "default" : "destructive"}
+                    type={isSuccess ? "success" : "failure"}
+                    title={test.name}
+                    description={`Durée : ${test.durationMs} ms`}
+                  />
+                );
+              })}
+            </div> : (<></>)}
             <div className="resize-corner" />
           </section>
+
           <section
             style={{ order: paneOrder.indexOf('editor') }}
             className="pane editor-pane"
@@ -716,7 +629,7 @@ export default function Page() {
                     <DropdownMenuTrigger className="more-button" render={<Button variant="outline" />}>
                       •••
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent>
+                    <DropdownMenuContent className="dropdown">
                       <DropdownMenuCheckboxItem
                         checked={language.id === 0}
                         onCheckedChange={(checked: boolean) =>
@@ -741,7 +654,7 @@ export default function Page() {
                 onChange={(value) => setCode(value ?? '')}
                 options={{
                   minimap: {
-                    enabled: true
+                    enabled: false
                   },
                   fontSize: 16,
                   lineHeight: 21,
@@ -762,12 +675,17 @@ export default function Page() {
             <div className="resize-corner" />
           </section>
           <section style={{ order: paneOrder.indexOf('tests') }} className="pane tests-pane" onDragOver={(event) => event.preventDefault()} onDrop={() => movePane('tests')} onClick={() => setFocusedPane('tests')}>
-            <PaneHeader paneId="tests" onDragStart={setDraggedPane} icon={<FlaskConical />} label="Test results" meta="6 cases"
+            <PaneHeader
+              paneId="tests"
+              onDragStart={setDraggedPane}
+              icon={<FlaskConical />}
+              label="Test results"
+              meta="6 cases"
               action={<Button className="run-button" onClick={handleRunTest}><Play /> {isRunning ? 'Running…' : 'Run tests'}</Button>}
             />
             <Editor
               height="100%"
-              language="javascript"
+              language={language.text}
               theme="vs-dark"
               value={testCode}
               onChange={(value) => setTestCode(value ?? '')}
@@ -775,7 +693,9 @@ export default function Page() {
                 minimap: {
                   enabled: false
                 },
-                fontSize: 13,
+                letterSpacing: 0,
+                fontWeight: "bold",
+                fontSize: 16,
                 lineHeight: 21,
                 padding: { top: 18 },
                 wordWrap: 'on',
@@ -792,9 +712,9 @@ export default function Page() {
           <span>
             <GripVertical /> Drag panel edges to resize
           </span>
-          <span>Autosaved just now
+          {/*           <span>Autosaved just now
             <span className="save-dot" />
-          </span>
+          </span> */}
         </footer>
       </section >
     </main >

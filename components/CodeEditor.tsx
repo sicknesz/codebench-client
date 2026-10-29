@@ -1,23 +1,11 @@
 'use client'
 
+
 import Editor, { useMonaco } from '@monaco-editor/react'
+import { configureDebugging } from 'monaco-languageclient/debugger';
 import {
-  Check,
   ChevronDown,
-  ChevronRight,
-  CircleHelp,
-  Code2,
-  FileCode2,
-  GripVertical,
-  Lightbulb,
-  Play,
-  RotateCcw,
-  Settings2,
-  FlaskConical,
   Terminal,
-  Timer,
-  // X,
-  Zap,
   CircleX,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
@@ -26,9 +14,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
-  // DropdownMenuItem,
-  // DropdownMenuLabel,
-  // DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import PaneHeader from './PaneHeader'
@@ -153,6 +138,21 @@ type CodeEditorProps = {
   setLanguage: (language: LanguagesOption) => void
 };
 
+export const configurePostStart = async (apiWrapper: MonacoVscodeApiWrapper, configResult: ConfigResult) => {
+  const result = apiWrapper.getExtensionRegisterResult('mlc-app-playground') as RegisterLocalProcessExtensionResult;
+  await result.setAsDefaultApi();
+
+  await Promise.all([
+    vscode.workspace.openTextDocument(configResult.helloTsUri),
+    vscode.workspace.openTextDocument(configResult.testerTsUri),
+    vscode.workspace.openTextDocument(configResult.helloJsonUri)
+  ]);
+
+  await Promise.all([vscode.window.showTextDocument(configResult.helloTsUri)]);
+
+  console.log('Application Playground started');
+};
+
 const CodeEditor = ({ paneOrder, movePane, setFocusedPane, setDraggedPane, language, setLanguage }: CodeEditorProps) => {
 
   const monaco = useMonaco();
@@ -236,9 +236,10 @@ const CodeEditor = ({ paneOrder, movePane, setFocusedPane, setDraggedPane, langu
             smoothScrolling: true,
             renderLineHighlight: 'line',
             overviewRulerBorder: false,
-            fontFamily: "'JetBrains Mono', 'SFMono-Regular', 'Lucinda console', Consolas, monospace"
+            fontFamily: "monospace"
           }}
         />
+
       </div>
       <div className="editor-status">
         <span>Ln {line}, Col {column}</span><span>Spaces: 2</span>

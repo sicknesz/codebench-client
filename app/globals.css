@@ -682,6 +682,72 @@ button {
     font: 10px 'Space Mono';
 }
 
+.dropdown {
+    background-color: var(--panel);
+    color: var(--muted)
+}
+
+.alert-failure {
+    display: flex;
+    gap: 10px;
+    border: 1px solid #433538;
+    background: #251818;
+    border-radius: 6px;
+    padding: 11px;
+    margin: 2px;
+    color: #99a9a1;
+}
+
+.alert-failure>svg {
+    width: 14px;
+    flex: 0 0 14px;
+    color: #d87272;
+}
+
+.alert-failure strong {
+    display: block;
+    color: #bdd8c7;
+    font-size: 10px;
+    margin-bottom: 3px;
+}
+
+.alert-failure p {
+    margin: 0;
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+.alert-success {
+    display: flex;
+    gap: 10px;
+    border: 1px solid #354338;
+    background: #18251f;
+    border-radius: 6px;
+    padding: 11px;
+    margin: 2px;
+    color: #99a9a1;
+}
+
+.alert-success>svg {
+    width: 14px;
+    flex: 0 0 14px;
+    color: #72d883;
+}
+
+.alert-success strong {
+    display: block;
+    color: #bdd8c7;
+    font-size: 10px;
+    margin-bottom: 3px;
+}
+
+.alert-success p {
+    margin: 0;
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+
 .tip {
     display: flex;
     gap: 10px;
@@ -713,8 +779,9 @@ button {
 
 .result-content {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 16px;
+    align-items: start;
+    justify-content: start;
     flex: 1;
     flex-direction: column;
 }
@@ -745,7 +812,6 @@ button {
     border-color: #3d6a52;
     background: #1a3227;
 }
-
 
 .result-placeholder h2 {
     color: #b9c3c8;
